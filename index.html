@@ -105,31 +105,47 @@
     };
 
     // Inicializar Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+    try {
+      const app = firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+      console.log('Firebase inicializado correctamente');
+    } catch (error) {
+      console.error('Error al inicializar Firebase:', error);
+    }
 
     // Referencia a la base de datos para los mensajes
-    const messagesRef = database.ref('messages');
+    const messagesRef = firebase.database().ref('messages');
 
     // Función para enviar un mensaje
     function sendMessage() {
       const message = document.getElementById('message').value.trim();
+      console.log("Intentando enviar mensaje: ", message); // Debug
       if (message !== '') {
         // Agregar mensaje a Firebase
         messagesRef.push().set({
           message: message,
           timestamp: Date.now()
+        }, (error) => {
+          if (error) {
+            console.error("Error al enviar el mensaje: ", error);
+          } else {
+            console.log("Mensaje enviado correctamente");
+            document.getElementById('message').value = ''; // Limpiar el campo de texto
+          }
         });
-        document.getElementById('message').value = ''; // Limpiar el campo de texto
       }
     }
 
     // Escuchar clic en botón enviar
-    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    document.getElementById('send-btn').addEventListener('click', function() {
+      console.log("Botón de enviar clickeado"); // Debug
+      sendMessage();
+    });
 
     // Enviar mensaje al presionar Enter
     document.getElementById('message').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
+        console.log("Enter presionado"); // Debug
         sendMessage();
       }
     });
