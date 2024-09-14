@@ -3,9 +3,194 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat en Firebase</title>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+  <title>Publicar Cartas en Firebase</title>
+  <script type="module">
+    // Importar módulos de Firebase
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+    import { getDatabase, ref, push, set, onValue, update, remove, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyA-iEZ3w8ytl6v7USfbQfdCUmTUfGGArEU",
+      authDomain: "pagina-web-37c00.firebaseapp.com",
+      databaseURL: "https://pagina-web-37c00-default-rtdb.firebaseio.com",
+      projectId: "pagina-web-37c00",
+      storageBucket: "pagina-web-37c00.appspot.com",
+      messagingSenderId: "335388838005",
+      appId: "1:335388838005:web:9c2f2a36686d65c8fb103c",
+      measurementId: "G-2M93QFX9DJ"
+    };
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    // Referencia a la base de datos para las cartas
+    const cardsRef = ref(database, 'cards');
+
+    // Función para publicar una carta
+    function publishCard() {
+      const title = document.getElementById('title').value.trim();
+      const content = document.getElementById('content').value.trim();
+      if (title !== '' && content !== '') {
+        // Agregar carta a Firebase
+        const newCardRef = push(cardsRef);
+        set(newCardRef, {
+          title: title,
+          content: content,
+          timestamp: Date.now(),
+          order: Date.now(),
+          read: false // Inicialmente, la carta no está leída
+        }).then(() => {
+          console.log("Carta publicada correctamente");
+          document.getElementById('title').value = ''; // Limpiar el campo de título
+          document.getElementById('content').value = ''; // Limpiar el campo de contenido
+        }).catch((error) => {
+          console.error("Error al publicar la carta: ", error);
+        });
+      }
+    }
+
+    // Función para eliminar una carta
+    function deleteCard(cardId) {
+      remove(ref(database, 'cards/' + cardId))
+        .then(() => {
+          console.log("Carta eliminada correctamente");
+          document.querySelector(`.card[data-id="${cardId}"]`).remove();
+        })
+        .catch((error) => {
+          console.error("Error al eliminar la carta: ", error);
+        });
+    }
+
+    // Función para marcar una carta como leída
+    function markAsRead(cardId) {
+      const cardRef = ref(database, 'cards/' + cardId);
+      
+      // Obtener el estado actual de la carta
+      get(cardRef)
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            const currentStatus = snapshot.val().read;
+            const newStatus = !currentStatus;
+    
+            // Actualizar el estado en la base de datos
+            return update(cardRef, { read: newStatus }).then(() => {
+              console.log("Estado de la carta actualizado");
+              const cardElement = document.querySelector(`.card[data-id="${cardId}"]`);
+    
+              // Actualizar la interfaz de usuario según el nuevo estado
+              if (newStatus) {
+                cardElement.classList.add('read');
+              } else {
+                cardElement.classList.remove('read');
+              }
+            });
+          } else {
+            throw new Error("Carta no encontrada");
+          }
+        })
+        .catch((error) => {
+          console.error("Error al actualizar el estado de la carta: ", error);
+        });
+    }
+
+    // Función para mostrar las cartas en orden
+    function loadCards() {
+      const cardsRef = ref(database, 'cards');
+
+      // Obtener todas las cartas y ordenarlas por 'order'
+      onValue(cardsRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          // Vaciar el contenedor de cartas
+          const cardsBox = document.getElementById('cards-box');
+          cardsBox.innerHTML = '';
+
+          // Crear un array de cartas y ordenarlas
+          const cardEntries = Object.entries(data);
+          cardEntries.sort((a, b) => a[1].order - b[1].order);
+
+          cardEntries.forEach(([cardId, cardData]) => {
+            if (cardData && cardData.title && cardData.content) {
+              const cardElement = document.createElement('div');
+              cardElement.classList.add('card');
+              cardElement.classList.toggle('read', cardData.read); // Aplicar clase si está leída
+              cardElement.setAttribute('data-id', cardId);
+              cardElement.draggable = true;
+              cardElement.innerHTML = `
+                <h3 class="card-title">${cardData.title}</h3>
+                <p class="card-content">${cardData.content}</p>
+                <button class="toggle-btn" onclick="toggleCard('${cardId}')">Abrir</button>
+                <button class="delete-btn" onclick="deleteCard('${cardId}')">Eliminar</button>
+                <button class="mark-read-btn" onclick="markAsRead('${cardId}')">Marcar como leído</button>
+              `;
+              cardElement.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', cardId);
+                e.target.classList.add('dragging');
+              });
+              cardElement.addEventListener('dragend', (e) => {
+                e.target.classList.remove('dragging');
+              });
+              cardsBox.appendChild(cardElement);
+            }
+          });
+        }
+      });
+    }
+
+    // Función para manejar el arrastre y cambio de orden de las cartas
+    document.getElementById('cards-box').addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+
+    document.getElementById('cards-box').addEventListener('drop', (e) => {
+      e.preventDefault();
+      const cardId = e.dataTransfer.getData('text/plain');
+      const draggedCard = document.querySelector(`.card[data-id="${cardId}"]`);
+      const target = e.target.closest('.card');
+      if (target && target !== draggedCard) {
+        const parent = draggedCard.parentNode;
+        parent.insertBefore(draggedCard, target.nextSibling);
+
+        // Actualizar el orden en Firebase
+        const cards = Array.from(parent.children);
+        cards.forEach((card, index) => {
+          const id = card.getAttribute('data-id');
+          update(ref(database, 'cards/' + id), { order: index });
+        });
+      }
+    });
+
+    // Función para abrir y cerrar una carta
+    function toggleCard(cardId) {
+      const cardElement = document.querySelector(`.card[data-id="${cardId}"]`);
+      const contentElement = cardElement.querySelector('.card-content');
+      const button = cardElement.querySelector('.toggle-btn');
+      
+      // Alternar la visibilidad del contenido
+      contentElement.classList.toggle('expanded');
+      
+      // Cambiar el texto del botón según el estado
+      if (contentElement.classList.contains('expanded')) {
+        button.textContent = 'Cerrar';
+      } else {
+        button.textContent = 'Abrir';
+      }
+    }
+
+    // Exponer las funciones al contexto global
+    window.deleteCard = deleteCard;
+    window.toggleCard = toggleCard;
+    window.markAsRead = markAsRead;
+
+    // Configurar el botón de publicar
+    document.getElementById('publish-btn').addEventListener('click', publishCard);
+
+    // Cargar las cartas cuando se carga la página
+    window.onload = loadCards;
+  </script>
   <style>
     * {
       box-sizing: border-box;
@@ -20,149 +205,114 @@
       align-items: center;
       height: 100vh;
     }
-    .chat-container {
+    .container {
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       width: 100%;
-      max-width: 600px;
+      max-width: 800px;
       height: 80vh;
       background-color: #fff;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    #chat-box {
-      padding: 10px;
-      flex-grow: 1;
       overflow-y: auto;
-      background-color: #f9f9f9;
+    }
+    #publish-form {
+      padding: 20px;
       border-bottom: 1px solid #ddd;
     }
-    #chat-box p {
-      margin: 10px 0;
+    #publish-form input, #publish-form textarea, #publish-form button {
+      width: 100%;
+      margin-bottom: 10px;
       padding: 10px;
-      border-radius: 15px;
-      max-width: 75%;
-      word-wrap: break-word;
-    }
-    .message-user {
-      background-color: #d1e7dd;
-      align-self: flex-end;
-    }
-    .message-others {
-      background-color: #e2e3e5;
-      align-self: flex-start;
-    }
-    .input-container {
-      display: flex;
-      padding: 10px;
-      background-color: #fff;
-    }
-    #message {
-      flex-grow: 1;
-      padding: 10px;
+      border-radius: 5px;
       border: 1px solid #ccc;
-      border-radius: 5px;
-      font-size: 16px;
     }
-    #send-btn {
-      margin-left: 10px;
-      padding: 10px 20px;
+    #publish-form button {
       background-color: #007bff;
-      color: white;
+      color: #fff;
       border: none;
-      border-radius: 5px;
       cursor: pointer;
     }
-    #send-btn:hover {
+    #publish-form button:hover {
       background-color: #0056b3;
+    }
+    #cards-box {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      height: 100%;
+    }
+    .card {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s;
+      position: relative;
+      overflow: hidden;
+      cursor: move;
+    }
+    .card.read {
+      background-color: #e0ffe0;
+    }
+    .card-content {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.3s ease-out;
+      font-size: 14px;
+      color: #333;
+    }
+    .card-content.expanded {
+      max-height: 1000px; /* Ajustar según la necesidad */
+      transition: max-height 0.3s ease-in;
+    }
+    .card-title {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .toggle-btn, .delete-btn, .mark-read-btn {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 5px;
+    }
+    .toggle-btn:hover, .delete-btn:hover, .mark-read-btn:hover {
+      background-color: #0056b3;
+    }
+    .delete-btn {
+      background-color: #dc3545;
+    }
+    .delete-btn:hover {
+      background-color: #c82333;
+    }
+    .mark-read-btn {
+      background-color: #28a745;
+    }
+    .mark-read-btn:hover {
+      background-color: #218838;
+    }
+    .card.dragging {
+      opacity: 0.5;
     }
   </style>
 </head>
 <body>
-
-  <div class="chat-container">
-    <div id="chat-box"></div>
-
-    <div class="input-container">
-      <input type="text" id="message" placeholder="Escribe tu mensaje...">
-      <button id="send-btn">Enviar</button>
+  <div class="container">
+    <div id="publish-form">
+      <input type="text" id="title" placeholder="Título">
+      <textarea id="content" placeholder="Contenido"></textarea>
+      <button id="publish-btn">Publicar</button>
+    </div>
+    <div id="cards-box">
+      <!-- Las cartas se llenarán aquí dinámicamente -->
     </div>
   </div>
-
-  <script>
-    // Configuración de Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyA-iEZ3w8ytl6v7USfbQfdCUmTUfGGArEU",
-      authDomain: "pagina-web-37c00.firebaseapp.com",
-      databaseURL: "https://pagina-web-37c00-default-rtdb.firebaseio.com",
-      projectId: "pagina-web-37c00",
-      storageBucket: "pagina-web-37c00.appspot.com",
-      messagingSenderId: "335388838005",
-      appId: "1:335388838005:web:9c2f2a36686d65c8fb103c",
-      measurementId: "G-2M93QFX9DJ"
-    };
-
-    // Inicializar Firebase
-    try {
-      const app = firebase.initializeApp(firebaseConfig);
-      const database = firebase.database();
-      console.log('Firebase inicializado correctamente');
-    } catch (error) {
-      console.error('Error al inicializar Firebase:', error);
-    }
-
-    // Referencia a la base de datos para los mensajes
-    const messagesRef = firebase.database().ref('messages');
-
-    // Función para enviar un mensaje
-    function sendMessage() {
-      const message = document.getElementById('message').value.trim();
-      console.log("Intentando enviar mensaje: ", message); // Debug
-      if (message !== '') {
-        // Agregar mensaje a Firebase
-        messagesRef.push().set({
-          message: message,
-          timestamp: Date.now()
-        }, (error) => {
-          if (error) {
-            console.error("Error al enviar el mensaje: ", error);
-          } else {
-            console.log("Mensaje enviado correctamente");
-            document.getElementById('message').value = ''; // Limpiar el campo de texto
-          }
-        });
-      }
-    }
-
-    // Escuchar clic en botón enviar
-    document.getElementById('send-btn').addEventListener('click', function() {
-      console.log("Botón de enviar clickeado"); // Debug
-      sendMessage();
-    });
-
-    // Enviar mensaje al presionar Enter
-    document.getElementById('message').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        console.log("Enter presionado"); // Debug
-        sendMessage();
-      }
-    });
-
-    // Función para mostrar los mensajes
-    messagesRef.on('child_added', (snapshot) => {
-      const messageData = snapshot.val();
-      const messageElement = document.createElement('p');
-      messageElement.textContent = messageData.message;
-      messageElement.classList.add('message-others');
-      document.getElementById('chat-box').appendChild(messageElement);
-
-      // Desplazar el chat hacia abajo
-      document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
-    });
-  </script>
-
 </body>
 </html>
 
