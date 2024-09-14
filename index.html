@@ -114,13 +114,20 @@
     // Función para enviar un mensaje
     function sendMessage() {
       const message = document.getElementById('message').value.trim();
+      console.log("Mensaje a enviar: ", message); // Debug
       if (message !== '') {
         // Agregar mensaje a Firebase
         messagesRef.push().set({
           message: message,
           timestamp: Date.now()
+        }, function(error) {
+          if (error) {
+            console.error("Error al enviar el mensaje: ", error);
+          } else {
+            console.log("Mensaje enviado correctamente");
+            document.getElementById('message').value = ''; // Limpiar el campo de texto
+          }
         });
-        document.getElementById('message').value = ''; // Limpiar el campo de texto
       }
     }
 
