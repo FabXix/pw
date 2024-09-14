@@ -191,116 +191,164 @@
     // Cargar las cartas cuando se carga la página
     window.onload = loadCards;
   </script>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: 'Arial', sans-serif;
-      background-color: #f0f0f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .container {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      max-width: 800px;
-      height: 80vh;
-      background-color: #fff;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      overflow-y: auto;
-    }
-    #publish-form {
-      padding: 20px;
-      border-bottom: 1px solid #ddd;
-    }
-    #publish-form input, #publish-form textarea, #publish-form button {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    #publish-form button {
-      background-color: #007bff;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-    }
-    #publish-form button:hover {
-      background-color: #0056b3;
-    }
-    #cards-box {
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      overflow-y: auto;
-      height: 100%;
-    }
-    .card {
-      background-color: #fff;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      padding: 10px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      transition: background-color 0.3s;
-      position: relative;
-      overflow: hidden;
-      cursor: move;
-    }
-    .card.read {
-      background-color: #e0ffe0;
-    }
-    .card-content {
-      overflow: hidden;
-      max-height: 0;
-      transition: max-height 0.3s ease-out;
-      font-size: 14px;
-      color: #333;
-    }
-    .card-content.expanded {
-      max-height: 1000px; /* Ajustar según la necesidad */
-      transition: max-height 0.3s ease-in;
-    }
-    .card-title {
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-    .toggle-btn, .delete-btn, .mark-read-btn {
-      background-color: #007bff;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      padding: 5px 10px;
-      cursor: pointer;
-      font-size: 14px;
-      margin-right: 5px;
-    }
-    .toggle-btn:hover, .delete-btn:hover, .mark-read-btn:hover {
-      background-color: #0056b3;
-    }
-    .delete-btn {
-      background-color: #dc3545;
-    }
-    .delete-btn:hover {
-      background-color: #c82333;
-    }
-    .mark-read-btn {
-      background-color: #28a745;
-    }
-    .mark-read-btn:hover {
-      background-color: #218838;
-    }
-    .card.dragging {
-      opacity: 0.5;
-    }
-  </style>
+<style>
+  /* General Reset */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    
+  }
+
+  /* Body Styling */
+  body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f7a0a0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  /* Container Styling */
+  .container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 800px;
+    height: 80vh;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    overflow-y: auto;
+  }
+
+  /* Publish Form Styling */
+  #publish-form {
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  #publish-form input,
+  #publish-form textarea,
+  #publish-form button {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    overflow-y: auto;
+    box-sizing: border-box; /* Ensures padding is included in width */
+  }
+
+  #publish-form button {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+  }
+
+  #publish-form button:hover {
+    background-color: #0056b3;
+  }
+
+  /* Cards Box Styling */
+  #cards-box {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    height: 100%;
+  }
+
+  /* Card Styling */
+  .card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s;
+    position: relative;
+    overflow-y: auto;
+    cursor: move;
+    word-wrap: break-word; /* Ensures content wraps within card */
+  }
+
+  .card.read {
+    background-color: #e0ffe0;
+    overflow-y: auto;
+
+  }
+
+  /* Card Content Styling */
+  .card-content {
+    overflow-y: auto;
+    max-height: 0;
+    transition: max-height 0.3s ease-out;
+    font-size: 14px;
+    color: #333;
+    word-wrap: break-word; /* Ensures content wraps */
+  }
+
+  .card-content.expanded {
+    max-height: 1000px; /* Adjust as needed */
+    transition: max-height 0.3s ease-in;
+    overflow-y: auto;
+
+    
+
+  }
+
+  /* Card Title Styling */
+  .card-title {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+
+  /* Button Styling */
+  .toggle-btn,
+  .delete-btn,
+  .mark-read-btn {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-right: 5px;
+  }
+
+  .toggle-btn:hover,
+  .delete-btn:hover,
+  .mark-read-btn:hover {
+    background-color: #0056b3;
+  }
+
+  .delete-btn {
+    background-color: #dc3545;
+  }
+
+  .delete-btn:hover {
+    background-color: #c82333;
+  }
+
+  .mark-read-btn {
+    background-color: #28a745;
+  }
+
+  .mark-read-btn:hover {
+    background-color: #218838;
+  }
+
+  /* Dragging Effect */
+  .card.dragging {
+    opacity: 0.5;
+  }
+</style>
+
 </head>
 <body>
   <div class="container">
@@ -315,4 +363,5 @@
   </div>
 </body>
 </html>
+
 
