@@ -276,7 +276,8 @@
   .card.read {
     background-color: #e0ffe0;
     overflow-y: auto;
-
+    word-wrap: break-word;
+    
   }
 
   /* Card Content Styling */
@@ -284,9 +285,14 @@
     overflow-y: auto;
     max-height: 0;
     transition: max-height 0.3s ease-out;
-    font-size: 14px;
-    color: #333;
-    word-wrap: break-word; /* Ensures content wraps */
+    font-size: 17px;
+    color: #000000;
+    line-height: 1.5;
+    font-size: 17px;
+    color: #000000;
+    white-space: pre-wrap; /* Mantiene los saltos de línea y espacios */
+    overflow-wrap: break-word; /* Asegura que las palabras largas se rompan */
+    word-wrap: break-word; /* Compatibilidad con navegadores más antiguos */
   }
 
   .card-content.expanded {
@@ -360,5 +366,6 @@
   </div>
 </body>
 </html>
+
 
 
